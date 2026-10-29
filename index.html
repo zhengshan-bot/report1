@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>消课系统 · 课时管理</title>
+<style>
+  :root{
+    --bg:#f1f5f9; --card:#fff; --line:#e2e8f0;
+    --text:#0f172a; --muted:#64748b; --primary:#4f46e5;
+    --green:#10b981; --red:#ef4444; --amber:#f59e0b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--text); line-height:1.5;
+    padding:24px; min-height:100vh;
+  }
+  .app{max-width:1200px;margin:0 auto}
+
+  /* ---------- 顶部 ---------- */
+  header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+  h1{font-size:26px;letter-spacing:-.5px}
+  .sub{color:var(--muted);font-size:14px;margin-top:2px}
+  .actions{display:flex;gap:10px;flex-wrap:wrap}
+  .btn{
+    border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:600;
+    cursor:pointer;transition:.15s;font-family:inherit;white-space:nowrap;
+  }
+  .btn.primary{background:var(--primary);color:#fff;box-shadow:0 4px 12px rgba(79,70,229,.3)}
+  .btn.primary:hover{background:#4338ca;transform:translateY(-1px)}
+  .btn.ghost{background:#fff;color:var(--text);border:1px solid var(--line)}
+  .btn.ghost:hover{background:#f8fafc}
+  .btn.green{background:var(--green);color:#fff}
+  .btn.green:hover{background:#059669}
+  .btn.small{padding:6px 12px;font-size:13px;border-radius:8px}
+
+  /* ---------- 概览 ---------- */
+  .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:26px}
+  .sum-card{
+    background:#fff;border-radius:14px;padding:16px 18px;
+    box-shadow:0 1px 3px rgba(15,23,42,.07);
+  }
+  .sum-label{font-size:12.5px;color:var(--muted);font-weight:600}
+  .sum-val{font-size:26px;font-weight:800;margin-top:2px;letter-spacing:-.5px}
+  .sum-val small{font-size:13px;font-weight:600;color:var(--muted);margin-left:2px}
+
+  /* ---------- 学生列表 ---------- */
+  h2{font-size:17px;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .hint{font-size:12.5px;color:var(--muted);font-weight:500}
+  .students{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:30px}
+  .student{
+    background:#fff;border-radius:16px;padding:18px;border-left:5px solid var(--c);
+    box-shadow:0 1px 3px rgba(15,23,42,.07);transition:.15s;position:relative;
+  }
+  .student:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(15,23,42,.09)}
+  .stu-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:12px}
+  .stu-name{font-weight:800;font-size:17px;letter-spacing:-.3px}
+  .stu-badge{
+    font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;
+    background:#f1f5f9;color:#64748b;white-space:nowrap;
+  }
+  .stu-badge.low{background:#fef2f2;color:#dc2626}
+  .stu-badge.ok{background:#ecfdf5;color:#059669}
+  .stu-balance{display:flex;align-items:baseline;gap:6px;margin-bottom:8px}
+  .balance-num{font-size:30px;font-weight:800;color:var(--c);letter-spacing:-1px;line-height:1}
+  .balance-unit{font-size:13px;color:var(--muted);font-weight:600}
+  .stu-meta{font-size:12.5px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+  .stu-meta b{color:var(--text);font-weight:700}
+  .stu-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+  /* ---------- 历史记录 ---------- */
+  .records{background:#fff;border-radius:16px;padding:8px;box-shadow:0 1px 3px rgba(15,23,42,.07);overflow:hidden}
+  .record{
+    display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;
+    transition:.12s;
+  }
+  .record:hover{background:#f8fafc}
+  .record + .record{border-top:1px solid #f1f5f9}
+  .rec-dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex:0 0 auto}
+  .rec-main{flex:1;min-width:0}
+  .rec-title{font-weight:700;font-size:14px}
+  .rec-title small{font-weight:600;color:var(--muted);font-size:12px;margin-left:4px}
+  .rec-note{font-size:12.5px;color:var(--muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rec-time{font-size:12px;color:#94a3b8;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .rec-amount{font-weight:800;font-size:15px;color:var(--red);white-space:nowrap}
+  .rec-undo{
+    border:none;background:#f1f5f9;color:#64748b;border-radius:8px;
+    padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;
+    transition:.15s;font-family:inherit;white-space:nowrap;
+  }
+  .rec-undo:hover{background:#fee2e2;color:#dc2626}
+  .empty{color:#94a3b8;font-size:13px;text-align:center;padding:34px 0;font-weight:500}
+
+  footer{text-align:center;color:#94a3b8;font-size:12.5px;margin-top:26px}
+
+  /* ---------- 弹窗 ---------- */
+  .modal{
+    position:fixed;inset:0;background:rgba(15,23,42,.5);backdrop-filter:blur(2px);
+    display:none;align-items:center;justify-content:center;padding:20px;z-index:100;
+  }
+  .modal.show{display:flex}
+  .modal-box{
+    background:#fff;border-radius:18px;padding:24px;width:100%;max-width:400px;
+    box-shadow:0 24px 60px rgba(0,0,0,.25);animation:pop .18s ease;
+  }
+  @keyframes pop{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+  .modal-box h3{font-size:18px;margin-bottom:4px}
+  .modal-sub{font-size:13px;color:var(--muted);margin-bottom:18px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px}
+  .field input,.field select,.field textarea{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;
+    font-size:14px;font-family:inherit;outline:none;background:#fff;color:var(--text);
+  }
+  .field input:focus,.field select:focus,.field textarea:focus{
+    border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.13);
+  }
+  .field textarea{resize:vertical;min-height:60px}
+  .quick-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .quick{
+    border:1px solid var(--line);background:#fff;border-radius:8px;
+    padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer;
+    transition:.15s;font-family:inherit;
+  }
+  .quick:hover{border-color:var(--primary);color:var(--primary);background:#eef2ff}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+
+  @media (max-width:640px){
+    body{padding:14px}
+    h1{font-size:21px}
+    .actions{width:100%}
+    .actions .btn{flex:1}
+    .students{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>📚 消课系统</h1>
+      <p class="sub">课时余额 · 消课记录 · 一键撤销</p>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" id="resetBtn">恢复默认</button>
+      <button class="btn green" id="addStudentBtn">＋ 添加学生</button>
+    </div>
+  </header>
+
+  <section class="summary" id="summary"></section>
+
+  <section>
+    <h2>👤 学生课时 <span class="hint">（点击“消课”扣减课时）</span></h2>
+    <div class="students" id="students"></div>
+  </section>
+
+  <section>
+    <h2>📝 消课记录 <span class="hint">（按时间倒序，可撤销）</span></h2>
+    <div class="records" id="records"></div>
+  </section>
+
+  <footer>数据保存在浏览器本地，刷新不会丢失</footer>
+</div>
+
+<!-- 消课弹窗 -->
+<div class="modal" id="consumeModal">
+  <div class="modal-box">
+    <h3>消课</h3>
+    <p class="modal-sub" id="consumeSub"></p>
+    <div class="field">
+      <label>消课课时</label>
+      <input type="number" id="cAmount" step="0.5" min="0.5" value="1" />
+      <div class="quick-row">
+        <button class="quick" data-amt="0.5">0.5</button>
+        <button class="quick" data-amt="1">1</button>
+        <button class="quick" data-amt="1.5">1.5</button>
+        <button class="quick" data-amt="2">2</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>备注（可选）</label>
+      <input type="text" id="cNote" placeholder="例如：数学一对一" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="consumeCancel">取消</button>
+      <button class="btn primary" id="consumeSave">确认消课</button>
+    </div>
+  </div>
+</div>
+
+<!-- 添加学生弹窗 -->
+<div class="modal" id="addModal">
+  <div class="modal-box">
+    <h3>添加学生</h3>
+    <p class="modal-sub">录入姓名和初始课时</p>
+    <div class="field">
+      <label>学生姓名</label>
+      <input type="text" id="aName" placeholder="例如：张三" />
+    </div>
+    <div class="field">
+      <label>初始课时</label>
+      <input type="number" id="aInitial" step="0.5" min="0" value="10" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="addCancel">取消</button>
+      <button class="btn primary" id="addSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ 基础配置 ============ */
+const STORAGE_KEY = 'xiaoke-system-v1';
+
+/* ============ 默认数据 ============ */
+const DEFAULT_STUDENTS = [
+  { id:1, name:'周景天', initial:9    },
+  { id:2, name:'陆宣宇', initial:15   },
+  { id:3, name:'任泰霖', initial:12.5 },
+  { id:4, name:'朱泽烨', initial:1    },
+  { id:5, name:'戚书豪', initial:9    },
+  { id:6, name:'应明轩', initial:8    }
+];
+
+const DEFAULT_RECORDS = []; // 初始无消课记录
+
+/* ============ 工具函数 ============ */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtNum = n => Number.isInteger(n) ? String(n) : n.toFixed(1).replace(/\.0$/, '');
+const nowText = () => {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+
+const PALETTE = ['#6366f1','#ec4899','#f59e0b','#10b981','#3b82f6','#8b5cf6',
+                 '#ef4444','#14b8a6','#f97316','#06b6d4','#84cc16','#a855f7','#0ea5e9'];
+const colorCache = new Map();
+function colorOf(name){
+  if(colorCache.has(name)) return colorCache.get(name);
+  let h = 0;
+  for(const ch of name) h = (h*131 + ch.codePointAt(0)) % 100003;
+  const c = PALETTE[h % PALETTE.length];
+  colorCache.set(name, c);
+  return c;
+}
+
+/* ============ 数据存取 ============ */
+let students = [];
+let records = [];
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const data = JSON.parse(raw);
+      if(data && Array.isArray(data.students) && Array.isArray(data.records)){
+        students = data.students;
+        records = data.records;
+        return;
+      }
+    }
+  }catch(e){ /* 忽略损坏数据 */ }
+  students = DEFAULT_STUDENTS.map(s => ({...s}));
+  records = DEFAULT_RECORDS.map(r => ({...r}));
+}
+
+function saveData(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ students, records }));
+  }catch(e){}
+}
+
+function nextStudentId(){
+  return students.reduce((m,s) => Math.max(m, s.id), 0) + 1;
+}
+function nextRecordId(){
+  return records.reduce((m,r) => Math.max(m, r.id), 0) + 1;
+}
+
+/* 计算某学生已消课时 */
+function usedOf(studentId){
+  return records
+    .filter(r => r.studentId === studentId)
+    .reduce((s,r) => s + r.amount, 0);
+}
+/* 剩余课时 */
+function balanceOf(student){
+  return student.initial - usedOf(student.id);
+}
+
+/* ============ 渲染 ============ */
+function render(){
+  renderSummary();
+  renderStudents();
+  renderRecords();
+}
+
+function renderSummary(){
+  const totalInitial = students.reduce((s,st) => s + st.initial, 0);
+  const totalUsed = records.reduce((s,r) => s + r.amount, 0);
+  const totalBalance = totalInitial - totalUsed;
+
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const todayUsed = records
+    .filter(r => (r.time || '').startsWith(todayKey))
+    .reduce((s,r) => s + r.amount, 0);
+
+  document.getElementById('summary').innerHTML = `
+    <div class="sum-card"><div class="sum-label">学生人数</div><div class="sum-val">${students.length}<small>人</small></div></div>
+    <div class="sum-card"><div class="sum-label">总剩余课时</div><div class="sum-val" style="color:var(--primary)">${fmtNum(totalBalance)}<small>课时</small></div></div>
+    <div class="sum-card"><div class="sum-label">累计已消</div><div class="sum-val" style="color:var(--red)">${fmtNum(totalUsed)}<small>课时</small></div></div>
+    <div class="sum-card"><div class="sum-label">今日消课</div><div class="sum-val" style="color:var(--amber)">${fmtNum(todayUsed)}<small>课时</small></div></div>
+  `;
+}
+
+function renderStudents(){
+  const el = document.getElementById('students');
+  if(!students.length){
+    el.innerHTML = '<div class="empty">还没有学生，点击右上角「＋ 添加学生」</div>';
+    return;
+  }
+  el.innerHTML = students.map(st => {
+    const used = usedOf(st.id);
+    const balance = st.initial - used;
+    const c = colorOf(st.name);
+    const low = balance <= 0;
+    const warn = balance > 0 && balance <= 2;
+
+    const badgeClass = low ? 'low' : (warn ? 'low' : 'ok');
+    const badgeText = low ? '课时已用完' : (warn ? '课时不足' : '课时充足');
+
+    return `<div class="student" style="--c:${c}">
+      <div class="stu-top">
+        <span class="stu-name">${esc(st.name)}</span>
+        <span class="stu-badge ${badgeClass}">${badgeText}</span>
+      </div>
+      <div class="stu-balance">
+        <span class="balance-num" style="${low ? 'color:var(--red)' : ''}">${fmtNum(balance)}</span>
+        <span class="balance-unit">剩余课时</span>
+      </div>
+      <div class="stu-meta">
+        <span>初始 <b>${fmtNum(st.initial)}</b></span>
+        <span>已消 <b>${fmtNum(used)}</b></span>
+      </div>
+      <div class="stu-actions">
+        <button class="btn primary small" data-consume="${st.id}" ${low ? 'disabled style="opacity:.45;cursor:not-allowed"' : ''}>消课</button>
+        <button class="btn ghost small" data-add="${st.id}">加课时</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderRecords(){
+  const el = document.getElementById('records');
+  if(!records.length){
+    el.innerHTML = '<div class="empty">暂无消课记录</div>';
+    return;
+  }
+  const sorted = [...records].sort((a,b) => b.id - a.id);
+  el.innerHTML = sorted.map(r => {
+    const color = colorOf(r.studentName || '');
+    return `<div class="record">
+      <span class="rec-dot" style="background:${color}"></span>
+      <div class="rec-main">
+        <div class="rec-title">${esc(r.studentName)} <small>消课</small></div>
+        ${r.note ? `<div class="rec-note">${esc(r.note)}</div>` : ''}
+      </div>
+      <span class="rec-time">${esc(r.time || '')}</span>
+      <span class="rec-amount">-${fmtNum(r.amount)}</span>
+      <button class="rec-undo" data-undo="${r.id}">撤销</button>
+    </div>`;
+  }).join('');
+}
+
+/* ============ 消课弹窗 ============ */
+const consumeModal = document.getElementById('consumeModal');
+const consumeSub   = document.getElementById('consumeSub');
+const cAmount      = document.getElementById('cAmount');
+const cNote        = document.getElementById('cNote');
+let currentStudentId = null;
+
+function openConsume(studentId){
+  const st = students.find(s => s.id === studentId);
+  if(!st) return;
+  const balance = balanceOf(st);
+  if(balance <= 0){ alert('该学生剩余课时不足，无法消课'); return; }
+
+  currentStudentId = studentId;
+  consumeSub.textContent = `${st.name} · 当前剩余 ${fmtNum(balance)} 课时`;
+  cAmount.value = Math.min(1, balance);
+  cNote.value = '';
+  consumeModal.classList.add('show');
+  setTimeout(() => cAmount.focus(), 50);
+}
+
+document.getElementById('consumeCancel').onclick = () => consumeModal.classList.remove('show');
+consumeModal.addEventListener('click', e => { if(e.target === consumeModal) consumeModal.classList.remove('show'); });
+
+document.querySelectorAll('#consumeModal .quick').forEach(btn => {
+  btn.onclick = () => { cAmount.value = btn.dataset.amt; };
+});
+
+document.getElementById('consumeSave').onclick = () => {
+  const st = students.find(s => s.id === currentStudentId);
+  if(!st) return;
+  const amount = Number(cAmount.value);
+  const note = cNote.value.trim();
+
+  if(!amount || amount <= 0){ alert('请输入大于 0 的消课课时'); return; }
+  const balance = balanceOf(st);
+  if(amount > balance){
+    alert(`消课课时不能超过剩余课时（${fmtNum(balance)}）`);
+    return;
+  }
+
+  records.push({
+    id: nextRecordId(),
+    studentId: st.id,
+    studentName: st.name,
+    amount,
+    note,
+    time: nowText()
+  });
+  saveData();
+  render();
+  consumeModal.classList.remove('show');
+};
+
+/* ============ 加课时弹窗（复用简易 prompt） ============ */
+function addHours(studentId){
+  const st = students.find(s => s.id === studentId);
+  if(!st) return;
+  const val = prompt(`为「${st.name}」增加课时数：`, '1');
+  if(val === null) return;
+  const amount = Number(val);
+  if(!amount || amount <= 0){ alert('请输入大于 0 的课时数'); return; }
+  st.initial = Number((st.initial + amount).toFixed(2));
+  saveData();
+  render();
+}
+
+/* ============ 添加学生 ============ */
+const addModal = document.getElementById('addModal');
+const aName    = document.getElementById('aName');
+const aInitial = document.getElementById('aInitial');
+
+document.getElementById('addStudentBtn').onclick = () => {
+  aName.value = '';
+  aInitial.value = 10;
+  addModal.classList.add('show');
+  setTimeout(() => aName.focus(), 50);
+};
+document.getElementById('addCancel').onclick = () => addModal.classList.remove('show');
+addModal.addEventListener('click', e => { if(e.target === addModal) addModal.classList.remove('show'); });
+
+document.getElementById('addSave').onclick = () => {
+  const name = aName.value.trim();
+  const initial = Number(aInitial.value);
+  if(!name){ alert('请输入学生姓名'); return; }
+  if(isNaN(initial) || initial < 0){ alert('请输入有效的初始课时'); return; }
+  if(students.some(s => s.name === name)){
+    if(!confirm(`已存在名为「${name}」的学生，仍要添加吗？`)) return;
+  }
+  students.push({ id: nextStudentId(), name, initial });
+  saveData();
+  render();
+  addModal.classList.remove('show');
+};
+
+aName.addEventListener('keydown', e => { if(e.key === 'Enter') document.getElementById('addSave').click(); });
+
+/* ============ 事件委托 ============ */
+document.getElementById('students').addEventListener('click', e => {
+  const consumeBtn = e.target.closest('[data-consume]');
+  if(consumeBtn){
+    openConsume(Number(consumeBtn.dataset.consume));
+    return;
+  }
+  const addBtn = e.target.closest('[data-add]');
+  if(addBtn){
+    addHours(Number(addBtn.dataset.add));
+  }
+});
+
+document.getElementById('records').addEventListener('click', e => {
+  const undoBtn = e.target.closest('[data-undo]');
+  if(!undoBtn) return;
+  const id = Number(undoBtn.dataset.undo);
+  const rec = records.find(r => r.id === id);
+  if(!rec) return;
+  if(confirm(`确定撤销「${rec.studentName}」的 ${fmtNum(rec.amount)} 课时消课记录吗？\n撤销后课时将返还。`)){
+    records = records.filter(r => r.id !== id);
+    saveData();
+    render();
+  }
+});
+
+/* ============ 恢复默认 ============ */
+document.getElementById('resetBtn').onclick = () => {
+  if(confirm('确定恢复为默认数据吗？当前的修改和记录将会丢失。')){
+    students = DEFAULT_STUDENTS.map(s => ({...s}));
+    records = [];
+    colorCache.clear();
+    saveData();
+    render();
+  }
+};
+
+/* ============ 启动 ============ */
+loadData();
+render();
+</script>
+</body>
+</html>
